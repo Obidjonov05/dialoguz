@@ -1,26 +1,32 @@
-export default async function handler(req) {
+export async function handler(event) {
   try {
-    const API_KEY = process.env.API_KEY;
-
-    if (!API_KEY) {
-      return new Response(
-        JSON.stringify({ error: "API_KEY missing" }),
-        { status: 500 }
-      );
+    if (event.httpMethod !== "POST") {
+      return {
+        statusCode: 405,
+        body: "Method Not Allowed",
+      };
     }
 
-    const body = await req.json();
+    const API_KEY = process.env.API_KEY;
+    if (!API_KEY) {
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: "API_KEY missing on server" }),
+      };
+    }
+
+    const body = JSON.parse(event.body || "{}");
     const message = body.message;
 
     if (!message) {
-      return new Response(
-        JSON.stringify({ error: "Message required" }),
-        { status: 400 }
-      );
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: "Message is required" }),
+      };
     }
 
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -30,7 +36,7 @@ export default async function handler(req) {
               parts: [{ text: message }]
             }
           ]
-        })
+        }),
       }
     );
 
@@ -40,16 +46,18 @@ export default async function handler(req) {
       data?.candidates?.[0]?.content?.parts?.[0]?.text ||
       "No response from Gemini";
 
-    return new Response(
-      JSON.stringify({ reply }),
-      {
-        headers: { "Content-Type": "application/json" }
-      }
-    );
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ reply }),
+    };
+
   } catch (err) {
-    return new Response(
-      JSON.stringify({ error: err.message }),
-      { status: 500 }
-    );
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        error: "Function crashed",
+        details: err.message,
+      }),
+    };
   }
 }
