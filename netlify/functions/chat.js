@@ -1,74 +1,55 @@
-export default async function handler(event) {
+export default async function handler(req) {
   try {
     const API_KEY = process.env.API_KEY;
 
     if (!API_KEY) {
-      return {
-        statusCode: 500,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ error: "API_KEY missing on server" }),
-      };
+      return new Response(
+        JSON.stringify({ error: "API_KEY missing" }),
+        { status: 500 }
+      );
     }
 
-    if (!event.body) {
-      return {
-        statusCode: 400,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ error: "Empty request body" }),
-      };
-    }
-
-    const { message, systemInstruction } = JSON.parse(event.body);
+    const body = await req.json();
+    const message = body.message;
 
     if (!message) {
-      return {
-        statusCode: 400,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ error: "Message is required" }),
-      };
+      return new Response(
+        JSON.stringify({ error: "Message required" }),
+        { status: 400 }
+      );
     }
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`,
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [
             {
-              role: "user",
-              parts: [
-                {
-                  text: systemInstruction
-                    ? `${systemInstruction}\n\nUser: ${message}`
-                    : message,
-                },
-              ],
-            },
-          ],
-        }),
+              parts: [{ text: message }]
+            }
+          ]
+        })
       }
     );
 
-    const data = await response.json();
+    const data = await res.json();
 
     const reply =
       data?.candidates?.[0]?.content?.parts?.[0]?.text ||
       "No response from Gemini";
 
-    return {
-      statusCode: 200,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reply }),
-    };
+    return new Response(
+      JSON.stringify({ reply }),
+      {
+        headers: { "Content-Type": "application/json" }
+      }
+    );
   } catch (err) {
-    return {
-      statusCode: 500,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        error: "Function crashed",
-        details: err.message,
-      }),
-    };
+    return new Response(
+      JSON.stringify({ error: err.message }),
+      { status: 500 }
+    );
   }
 }
