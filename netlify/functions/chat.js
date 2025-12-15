@@ -1,6 +1,6 @@
 export default async function handler(event) {
   try {
-    // 1. API KEY ni serverdan olish
+    // 1️⃣ API KEY ni Netlify Environment Variables dan olish
     const API_KEY = process.env.API_KEY;
 
     if (!API_KEY) {
@@ -10,8 +10,19 @@ export default async function handler(event) {
       };
     }
 
-    // 2. Frontenddan kelgan ma'lumot
-    const { message, systemInstruction, history } = JSON.parse(event.body);
+    // 2️⃣ Faqat POST ruxsat beramiz
+    if (event.httpMethod !== "POST") {
+      return {
+        statusCode: 405,
+        body: JSON.stringify({ error: "Method not allowed" }),
+      };
+    }
+
+    // 3️⃣ Frontenddan kelgan data
+    const body = JSON.parse(event.body || "{}");
+    const message = body.message;
+    const systemInstruction = body.systemInstruction || "";
+    const history = body.history || [];
 
     if (!message) {
       return {
@@ -20,7 +31,7 @@ export default async function handler(event) {
       };
     }
 
-    // 3. Gemini API chaqiruvi
+    // 4️⃣ Gemini API ga to‘g‘ri formatda so‘rov
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${API_KEY}`,
       {
@@ -34,7 +45,7 @@ export default async function handler(event) {
               role: "user",
               parts: [
                 {
-                  text: `${systemInstruction}\n\nUser: ${message}`,
+                  text: `${systemInstruction}\n\nUser message:\n${message}`,
                 },
               ],
             },
@@ -43,16 +54,29 @@ export default async function handler(event) {
       }
     );
 
+    if (!response.ok) {
+      const errorText = await response.text();
+      return {
+        statusCode: 500,
+        body: JSON.stringify({
+          error: "Gemini API error",
+          details: errorText,
+        }),
+      };
+    }
+
     const data = await response.json();
 
     const reply =
-      data?.candidates?.[0]?.content?.parts?.[0]?.text || "No response from AI";
+      data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+      "No response from AI";
 
-    // 4. Frontendga javob qaytarish
+    // 5️⃣ Frontendga toza javob
     return {
       statusCode: 200,
       body: JSON.stringify({ reply }),
     };
+
   } catch (err) {
     return {
       statusCode: 500,
