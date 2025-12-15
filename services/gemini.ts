@@ -1,3 +1,5 @@
+// src/services/gemini.ts
+
 export const generateAIResponse = async (
   message: string,
   systemInstruction: string,
@@ -11,9 +13,14 @@ export const generateAIResponse = async (
     body: JSON.stringify({
       message,
       systemInstruction,
-      history, // hozircha server ishlatmaydi, lekin zarar ham yo‘q
+      history,
     }),
   });
+
+  // ❗ server JSON bermasa shu yerda xato chiqadi
+  if (!res.ok) {
+    return "Server error";
+  }
 
   const data = await res.json();
   return data.reply || "No response from server";
