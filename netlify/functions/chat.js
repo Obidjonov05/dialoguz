@@ -11,30 +11,36 @@ export default async function handler(request) {
 
     const { message, systemInstruction } = await request.json();
 
-    if (!message) {
-      return new Response("Message required", { status: 400 });
-    }
-
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [
             {
-              role: "user",
-              parts: [{ text: `${systemInstruction || ""}\n${message}` }],
-            },
-          ],
+              parts: [
+                { text: `${systemInstruction || ""}\n\nUser: ${message}` }
+              ]
+            }
+          ]
         }),
       }
     );
 
     const data = await res.json();
+
+    // 🔥 DEBUG (agar xato bo‘lsa ko‘rish uchun)
+    if (data.error) {
+      return new Response(
+        JSON.stringify({ reply: "Gemini error: " + data.error.message }),
+        { status: 200 }
+      );
+    }
+
     const reply =
       data?.candidates?.[0]?.content?.parts?.[0]?.text ||
-      "No response from Gemini";
+      "Gemini javob bermadi";
 
     return new Response(
       JSON.stringify({ reply }),
@@ -43,7 +49,7 @@ export default async function handler(request) {
 
   } catch (e) {
     return new Response(
-      JSON.stringify({ error: e.message }),
+      JSON.stringify({ reply: "Server error: " + e.message }),
       { status: 500 }
     );
   }
