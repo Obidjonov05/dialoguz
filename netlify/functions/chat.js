@@ -1,17 +1,34 @@
-export default async function handler(request) {
+export default async function handler(event) {
   try {
-    if (request.method !== "POST") {
-      return new Response("Method Not Allowed", { status: 405 });
-    }
-
     const API_KEY = process.env.API_KEY;
+
     if (!API_KEY) {
-      return new Response("API_KEY missing", { status: 500 });
+      return {
+        statusCode: 500,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ error: "API_KEY missing on server" }),
+      };
     }
 
-    const { message, systemInstruction } = await request.json();
+    if (!event.body) {
+      return {
+        statusCode: 400,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ error: "Empty request body" }),
+      };
+    }
 
-    const res = await fetch(
+    const { message, systemInstruction } = JSON.parse(event.body);
+
+    if (!message) {
+      return {
+        statusCode: 400,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ error: "Message is required" }),
+      };
+    }
+
+    const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`,
       {
         method: "POST",
@@ -19,38 +36,39 @@ export default async function handler(request) {
         body: JSON.stringify({
           contents: [
             {
+              role: "user",
               parts: [
-                { text: `${systemInstruction || ""}\n\nUser: ${message}` }
-              ]
-            }
-          ]
+                {
+                  text: systemInstruction
+                    ? `${systemInstruction}\n\nUser: ${message}`
+                    : message,
+                },
+              ],
+            },
+          ],
         }),
       }
     );
 
-    const data = await res.json();
-
-    // 🔥 DEBUG (agar xato bo‘lsa ko‘rish uchun)
-    if (data.error) {
-      return new Response(
-        JSON.stringify({ reply: "Gemini error: " + data.error.message }),
-        { status: 200 }
-      );
-    }
+    const data = await response.json();
 
     const reply =
       data?.candidates?.[0]?.content?.parts?.[0]?.text ||
-      "Gemini javob bermadi";
+      "No response from Gemini";
 
-    return new Response(
-      JSON.stringify({ reply }),
-      { status: 200, headers: { "Content-Type": "application/json" } }
-    );
-
-  } catch (e) {
-    return new Response(
-      JSON.stringify({ reply: "Server error: " + e.message }),
-      { status: 500 }
-    );
+    return {
+      statusCode: 200,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reply }),
+    };
+  } catch (err) {
+    return {
+      statusCode: 500,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        error: "Function crashed",
+        details: err.message,
+      }),
+    };
   }
 }
