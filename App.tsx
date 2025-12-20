@@ -46,7 +46,8 @@ import {
   Legend
 } from 'recharts';
 import { UserContext, Role, Language, ChatMessage } from './types';
-import { generateAIResponse } from './services/gemini';
+import { generateAIResponse } from "./services/gemini";
+
 
 // --- CONSTANTS ---
 const REGIONS = [
