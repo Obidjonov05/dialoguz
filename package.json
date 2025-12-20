@@ -1,4 +1,13 @@
 {
+  "name": "dialoguz",
+  "version": "1.0.0",
+  "scripts": { ... },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0"   // <-- Shu qatorni qo'shing
+  },
+  "devDependencies": { ... }
+}
+{
   "name": "dialog.uz-ai",
   "private": true,
   "version": "0.0.0",
