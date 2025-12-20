@@ -1,8 +1,8 @@
 [build]
-  command = "npm run build"
-  publish = "dist"
-  functions = "netlify/functions"
+command = "npm run build"
+publish = "dist"
+functions = "netlify/functions"
 
 [functions]
-  node_bundler = "esbuild"
-  included_files = ["node_modules/@google/generative-ai/**"]
+node_bundler = "esbuild"
+included_files = ["node_modules/@google/generative-ai/**"]
