@@ -1,4 +1,12 @@
 [build]
+  functions = "netlify/functions"   # Netlify Functions papkasi
+  publish = "dist"                  # Vite build natijasi
+
+[functions]
+  node_bundler = "esbuild"
+  included_files = ["node_modules/@google/generative-ai/**"]
+[build]
 command = "npm run build"
 publish = "dist"
 functions = "netlify/functions"
+
